@@ -298,96 +298,90 @@ pub fn main() !void {
 
     printWelcome();
 
-    // Outer loop for playing multiple games
-    while (true) {
-        var game = Game.init(random);
+    var game = Game.init(random);
 
-        // Main game loop
-        while (game.attempts < MAX_ATTEMPTS and !game.won) {
-            stdout.print("{s}═══ Attempt {d}/{d} ═══{s}\n", .{
-                Color.CYAN,
-                game.attempts + 1,
-                MAX_ATTEMPTS,
-                Color.RESET,
-            }) catch {};
+    // Main game loop
+    while (game.attempts < MAX_ATTEMPTS and !game.won) {
+        stdout.print("{s}═══ Attempt {d}/{d} ═══{s}\n", .{
+            Color.CYAN,
+            game.attempts + 1,
+            MAX_ATTEMPTS,
+            Color.RESET,
+        }) catch {};
 
-            const guess = try readGuess(allocator);
+        const guess = try readGuess(allocator);
 
-            stdout.print("\nYour guess: ", .{}) catch {};
-            printColoredCode(guess);
-            stdout.print("\n", .{}) catch {};
+        stdout.print("\nYour guess: ", .{}) catch {};
+        printColoredCode(guess);
+        stdout.print("\n", .{}) catch {};
 
-            const result = game.checkGuess(guess);
+        const result = game.checkGuess(guess);
 
-            if (game.makeGuess(guess)) {
-                // Won!
-                stdout.print("\n{s}{s}🎉 CONGRATULATIONS! 🎉{s}\n", .{
-                    Color.BOLD,
-                    Color.GREEN,
-                    Color.RESET,
-                }) catch {};
-                stdout.print("{s}You cracked the code in {d} attempt{s}!{s}\n", .{
-                    Color.GREEN,
-                    game.attempts,
-                    if (game.attempts == 1) "" else "s",
-                    Color.RESET,
-                }) catch {};
-                stdout.print("\nThe secret code was: ", .{}) catch {};
-                printColoredCode(game.secret_code);
-                stdout.print("\n", .{}) catch {};
-
-                if (game.attempts <= 4) {
-                    stdout.print("\n{s}Outstanding! You're a master codebreaker!{s}\n", .{
-                        Color.MAGENTA,
-                        Color.RESET,
-                    }) catch {};
-                } else if (game.attempts <= 7) {
-                    stdout.print("\n{s}Excellent work! Great logical thinking!{s}\n", .{
-                        Color.MAGENTA,
-                        Color.RESET,
-                    }) catch {};
-                } else {
-                    stdout.print("\n{s}Well done! You solved it!{s}\n", .{
-                        Color.MAGENTA,
-                        Color.RESET,
-                    }) catch {};
-                }
-                break;
-            } else {
-                printFeedback(result.exact, result.color, game.attempts);
-            }
-        }
-
-        // Lost
-        if (!game.won) {
-            stdout.print("\n{s}{s}💔 GAME OVER 💔{s}\n", .{
+        if (game.makeGuess(guess)) {
+            // Won!
+            stdout.print("\n{s}{s}🎉 CONGRATULATIONS! 🎉{s}\n", .{
                 Color.BOLD,
-                Color.RED,
+                Color.GREEN,
                 Color.RESET,
             }) catch {};
-            stdout.print("{s}You've run out of attempts!{s}\n", .{ Color.RED, Color.RESET }) catch {};
+            stdout.print("{s}You cracked the code in {d} attempt{s}!{s}\n", .{
+                Color.GREEN,
+                game.attempts,
+                if (game.attempts == 1) "" else "s",
+                Color.RESET,
+            }) catch {};
             stdout.print("\nThe secret code was: ", .{}) catch {};
             printColoredCode(game.secret_code);
-            stdout.print("\n\n{s}Better luck next time! Try again?{s}\n", .{
-                Color.YELLOW,
-                Color.RESET,
-            }) catch {};
-        }
+            stdout.print("\n", .{}) catch {};
 
-        // Play again?
-        stdout.print("\n{s}Play again? (y/n): {s}", .{ Color.BOLD, Color.RESET }) catch {};
-        var buf: [10]u8 = undefined;
-        if (try stdin.readUntilDelimiterOrEof(&buf, '\n')) |input| {
-            const trimmed = std.mem.trim(u8, input, &std.ascii.whitespace);
-            if (trimmed.len > 0 and (trimmed[0] == 'y' or trimmed[0] == 'Y')) {
-                stdout.print("\n", .{}) catch {};
-                // Continue to next iteration to start a new game
-                continue;
+            if (game.attempts <= 4) {
+                stdout.print("\n{s}Outstanding! You're a master codebreaker!{s}\n", .{
+                    Color.MAGENTA,
+                    Color.RESET,
+                }) catch {};
+            } else if (game.attempts <= 7) {
+                stdout.print("\n{s}Excellent work! Great logical thinking!{s}\n", .{
+                    Color.MAGENTA,
+                    Color.RESET,
+                }) catch {};
+            } else {
+                stdout.print("\n{s}Well done! You solved it!{s}\n", .{
+                    Color.MAGENTA,
+                    Color.RESET,
+                }) catch {};
             }
+            break;
+        } else {
+            printFeedback(result.exact, result.color, game.attempts);
         }
+    }
 
-        // User chose not to play again or input ended
-        break;
+    // Lost
+    if (!game.won) {
+        stdout.print("\n{s}{s}💔 GAME OVER 💔{s}\n", .{
+            Color.BOLD,
+            Color.RED,
+            Color.RESET,
+        }) catch {};
+        stdout.print("{s}You've run out of attempts!{s}\n", .{ Color.RED, Color.RESET }) catch {};
+        stdout.print("\nThe secret code was: ", .{}) catch {};
+        printColoredCode(game.secret_code);
+        stdout.print("\n\n{s}Better luck next time! Try again?{s}\n", .{
+            Color.YELLOW,
+            Color.RESET,
+        }) catch {};
+    }
+
+    // Play again?
+    stdout.print("\n{s}Play again? (y/n): {s}", .{ Color.BOLD, Color.RESET }) catch {};
+    var buf: [10]u8 = undefined;
+    if (try stdin.readUntilDelimiterOrEof(&buf, '\n')) |input| {
+        const trimmed = std.mem.trim(u8, input, &std.ascii.whitespace);
+        if (trimmed.len > 0 and (trimmed[0] == 'y' or trimmed[0] == 'Y')) {
+            stdout.print("\n", .{}) catch {};
+            // Restart the game
+            return main();
+        }
     }
 
     stdout.print("\n{s}Thanks for playing CipherMind! 🧩{s}\n\n", .{
